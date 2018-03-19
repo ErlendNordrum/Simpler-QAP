@@ -1,8 +1,30 @@
-lcor <- function(df, X, Y, subgroup=NULL){
-  cor <-lcov(df, X, Y, subgroup)/(lcov(df, X, X, subgroup)*lcov(df, Y, Y, subgroup))^0.5
+# Calculates the correlation between sharing X and sharing Y from a dataframe 
+#
+# Takes:
+# df = A dataframe
+# X  = A string with the name of the variable X (factor) to compute adjacencies
+# Y  = A string with the name of the variable Y (factor) to compute adjacencies
+# 
+# Returns:
+# The Person r between sharing attribute X and sharing attribute Y
+lcor <- function(df, X, Y){
+  cor <-lcov(df, X, Y)/(lcov(df, X, X)*lcov(df, Y, Y))^0.5
   cor
 }
 
+# Calculates the number of adjacencies from the dataframes variable X, Y and the combination of X and Y
+#
+# Takes:
+# df = A dataframe
+# X  = A string with the name of the variable X (factor) to compute adjacencies
+# Y  = A string with the name of the variable Y (factor) to compute adjacencies
+#
+# Returns a "D" object that contains:
+# dyads_tot      = The total number of possible dyadic relationships in df
+# dyads_x        = The number of dyads that share X in df
+# dyads_y        = The number of dyads that share Y in df
+# dyads_xY       = The number of dyads that share both X and Y in df
+# dyads_xyblanck = The number of dyads that do not share X or Y
 calc_dyads <- function(df, X, Y){
   x <- summary(df[,X])
   y <- summary(df[,Y])
@@ -16,6 +38,17 @@ calc_dyads <- function(df, X, Y){
   D
 }
 
+# Calculates the covariance from the information on the adjacencies
+#
+# Takes a "D" object that contains:
+# dyads_tot      = The total number of possible dyadic relationships in df
+# dyads_x        = The number of dyads that share X in df
+# dyads_y        = The number of dyads that share Y in df
+# dyads_xY       = The number of dyads that share both X and Y in df
+# dyads_xyblanck = The number of dyads that do not share X or Y
+#
+# Returns:
+# The covariance between sharing attribute X and sharing attribute Y
 cov_from_D <- function(D){
   x_mean <- D$dyads_x/D$dyads_tot
   y_mean <- D$dyads_y/D$dyads_tot
@@ -27,15 +60,35 @@ cov_from_D <- function(D){
   cov
 }
 
-lcov <- function(df, X, Y, subgroup=NULL){
+# Calculates the covariance between sharing X and sharing Y from a dataframe 
+#
+# Takes:
+# df = A dataframe
+# X  = A string with the name of the variable X (factor) to compute adjacencies
+# Y  = A string with the name of the variable Y (factor) to compute adjacencies
+#
+# Returns:
+# The covariance between sharing attribute X and sharing attribute Y
+lcov <- function(df, X, Y){
   D <- calc_dyads(df, X, Y)
-  if (!is.null(subgroup)){
-    D <- remove_subgroup(df, X, Y, subgroup)
-  }
   cov <- cov_from_D(D)
   cov
 }
 
+# Calculates the correlation between sharing two different attributes and test the null hypothesis.
+# The correlation is calculated without generating matrices, but with dyad information inferred from the transitivity. 
+# Opposed to the quadratic assignment procedure, the reordering happens on the dependent attributes. And null hypothesis coefficients is calculated from this reordering as on the real value.
+#
+# Takes:
+# df = A dataframe
+# X  = A string with the name of the variable X (factor) to compute adjacencies
+# Y  = A string with the name of the variable Y (factor) to compute adjacencies
+#
+# Returns a object similar to that of qaptest (sna v2.4):
+# testval = Persons r between adjacencies of X and adjacencies of Y 
+# dist    = A vector containing the Monte Carlo draws
+# pgreq   = The proportion of draws which were greater than or equal to the observed value
+# pleeq   = The proportion of draws which were less than or equal to the observed value
 lap <- function(df, X, Y, reps=1000){
   testval <- lcor(df, X, Y)
   dist <- numeric()
